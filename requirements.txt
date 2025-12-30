@@ -3,5 +3,7 @@ pandas
 numpy
 plotly
 altair
+bokeh
+streamlit-bokeh
 pytest
 websocket-client

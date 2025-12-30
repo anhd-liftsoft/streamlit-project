@@ -1,11 +1,11 @@
 import streamlit as st
-from plotly.subplots import make_subplots
-import plotly.graph_objects as go
+from streamlit_bokeh import streamlit_bokeh
+from bokeh.models import Range1d
 
 from src.utils.filter import apply_filters, render_filters
 from src.utils.data_loader import DataLoader
 from src.utils.data_preprocessing import DataPreprocessor
-from src.utils.calculation import Calculation
+from src.utils.chart import AdvancedChartUtils
 
 
 TITLE = "Hiển thị dữ liệu klines và biểu đồ nến (Candlestick)"
@@ -51,66 +51,10 @@ st.subheader('Bảng dữ liệu OHLCV')
 st.write(f"Tổng số bản ghi trong ohlcv_data: {len(df)}")
 st.dataframe(df)
 
-# Biểu đồ nến với EMA và Volume
-df = Calculation.add_ma(df, price_col='close', spans=(7, 25))
-df = Calculation.add_ema(df, price_col='close', spans=(7, 25, 99, 200))
-df = Calculation.add_rsi(df, price_col='close', periods=(6, 12, 24))
+# Vẽ biểu đồ
+st.subheader("Biểu đồ nến (Candlestick Chart) từ ohlcv_data")
+fig_bokeh = AdvancedChartUtils.build_bokeh_ohlcv(df)
+x_min = df['open_time'].min()
+x_max = df['open_time'].max()
 
-candle_stick = go.Candlestick(
-    x=df['open_time'],
-    open=df['open'],
-    high=df['high'],
-    low=df['low'],
-    close=df['close'],
-    name='Price Movement Over Time'
-)
-
-ma_7_line = go.Scatter(x=df['open_time'], y=df['ma_7'], mode='lines', name='MA 7')
-ma_25_line = go.Scatter(x=df['open_time'], y=df['ma_25'], mode='lines', name='MA 25')
-ema_7_line = go.Scatter(x=df['open_time'], y=df['ema_7'], mode='lines', name='EMA 7')
-ema_25_line = go.Scatter(x=df['open_time'], y=df['ema_25'], mode='lines', name='EMA 25')
-ema_99_line = go.Scatter(x=df['open_time'], y=df['ema_99'], mode='lines', name='EMA 99')
-ema_200_line = go.Scatter(x=df['open_time'], y=df['ema_200'], mode='lines', name='EMA 200')
-
-volume_bar = go.Bar(
-    x=df['open_time'],
-    y=df['volume'],
-    name='Trading Volume Over Time'
-)
-
-rsi_6_line_plot = go.Scatter(x=df['open_time'], y=df['rsi_6'], mode='lines', name='RSI 6')
-rsi_12_line_plot = go.Scatter(x=df['open_time'], y=df['rsi_12'], mode='lines', name='RSI 12')
-rsi_24_line_plot = go.Scatter(x=df['open_time'], y=df['rsi_24'], mode='lines', name='RSI 24')
-
-fig = make_subplots(
-    rows=3, cols=1,
-    shared_xaxes=True,
-    row_heights=[700, 300, 300],
-    vertical_spacing=0.07,
-)
-
-fig.add_trace(candle_stick, row=1, col=1)
-fig.add_trace(ma_7_line, row=1, col=1)
-fig.add_trace(ma_25_line, row=1, col=1)
-fig.add_trace(ema_7_line, row=1, col=1)
-fig.add_trace(ema_25_line, row=1, col=1)
-fig.add_trace(ema_99_line, row=1, col=1)
-fig.add_trace(ema_200_line, row=1, col=1)
-
-fig.add_trace(volume_bar, row=2, col=1)
-
-fig.add_trace(rsi_6_line_plot, row=3, col=1)
-fig.add_trace(rsi_12_line_plot, row=3, col=1)
-fig.add_trace(rsi_24_line_plot, row=3, col=1)
-
-fig.update_yaxes(title_text="Price", row=1, col=1, fixedrange=False)
-fig.update_yaxes(title_text="Volume", row=2, col=1)
-fig.update_yaxes(title_text="RSI", row=3, col=1)
-
-fig.update_xaxes(title_text="Time", row=2, col=1)
-
-fig.update_layout(xaxis3=dict(rangeslider=dict(visible=True, thickness=0.03)))
-fig.for_each_trace(lambda t: t.update(xaxis="x3"))
-fig.update_layout(title='OHLCV with EMA and Volume', height=1000, xaxis_rangeslider_visible=False)
-
-st.plotly_chart(fig, use_container_width=True)
+streamlit_bokeh(fig_bokeh)

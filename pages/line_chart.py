@@ -1,6 +1,9 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
+from bokeh.plotting import figure
+from bokeh.models import Range1d
+from bokeh.models.tools import HoverTool
+from streamlit_bokeh import streamlit_bokeh
 
 from src.utils.filter import apply_filters, render_filters
 from src.utils.data_loader import DataLoader
@@ -68,7 +71,7 @@ with st.sidebar:
     vals = render_filters(filters, scope=scope)
 
     if st.button("Reset this page filters"):
-        # xoá key theo scope
+        # Xoá key theo scope
         for f in filters:
             st.session_state.pop(f"{scope}:{f['key']}", None)
         st.rerun()
@@ -86,11 +89,42 @@ st.dataframe(filtered_df)
 
 # Biểu đồ đường cho trade_data
 st.subheader("Biểu đồ đường (Line Chart) từ trade_data")
-fig = px.line(
-    filtered_df,
-    x='time',
-    y='price',
-    title='Giá theo thời gian',
-    labels={'time': 'Time', 'price': 'Price'}
+fig = figure(
+    title="Line Chart of Price over Time",
+    x_axis_type="datetime",
+    sizing_mode="stretch_width",
+    height=100,
 )
-st.plotly_chart(fig, use_container_width=True)
+
+y_min = float(df["price"].min())
+y_max = float(df["price"].max())
+pad = (y_max - y_min) * 0.05
+
+fig.y_range = Range1d(
+    start=y_min - pad,
+    end=y_max + pad,
+    bounds=(y_min - pad, y_max + pad)
+)
+
+fig.line(
+    x=df["time"],
+    y=df["price"],
+    line_width=2,
+    color="blue",
+    legend_label="Price",
+)
+
+fig.xaxis.axis_label = 'Time'
+fig.yaxis.axis_label = 'Price'
+fig.legend.location = "top_left"
+fig.legend.click_policy = "hide"
+fig.add_tools(HoverTool(
+    tooltips=[
+        ("time", "@x{%F %T}"),
+        ("price", "@y{0,0.00}"),
+    ],
+    formatters={"@x": "datetime"},
+    mode="vline"
+))
+
+streamlit_bokeh(fig, use_container_width=True)

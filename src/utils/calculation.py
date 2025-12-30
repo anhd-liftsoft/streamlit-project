@@ -1,3 +1,4 @@
+import streamlit as st
 import pandas as pd
 import numpy as np
 
@@ -7,6 +8,7 @@ class Calculation:
     Class for calculation indicators
     """
 
+    @st.cache_data(ttl=60)
     @staticmethod
     def add_ma(
         df: pd.DataFrame,
@@ -31,6 +33,7 @@ class Calculation:
             df[f"ma_{s}"] = df[price_col].rolling(window=s, min_periods=s).mean()
         return df
 
+    @st.cache_data(ttl=60)
     @staticmethod
     def add_ema(
         df: pd.DataFrame,
@@ -55,6 +58,7 @@ class Calculation:
             df[f"ema_{s}"] = df[price_col].ewm(span=s, adjust=False).mean()
         return df
 
+    @st.cache_data(ttl=60)
     @staticmethod
     def add_rsi(
         df: pd.DataFrame,

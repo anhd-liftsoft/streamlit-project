@@ -1,6 +1,10 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
+from bokeh.plotting import figure
+from bokeh.models import ColumnDataSource, Range1d
+from bokeh.models.tools import HoverTool
+from bokeh.transform import dodge
+from streamlit_bokeh import streamlit_bokeh
 
 from src.utils.data_loader import DataLoader
 from src.utils.data_preprocessing import DataPreprocessor
@@ -89,8 +93,9 @@ st.subheader("Biểu đồ cột từ trade_data")
 
 df["side"] = df["is_buyer_maker"].map({True: "SELL", False: "BUY"})  # quy ước phổ biến
 
-# Stacked Bar Chart
 bucket = "1min"  # "5min", "15min", "1H"...
+
+# Stacked Bar Chart
 stacked_df = (df
               .set_index("time")
               .groupby("side")["qty"]
@@ -99,15 +104,48 @@ stacked_df = (df
               .reset_index(name="volume")
               )
 
-fig = px.bar(stacked_df, x='time', y='volume', color='side', barmode='stack',
-             title='Khối lượng theo Side',)
+fig_stacked = figure(
+    title="Khối lượng theo Side",
+    x_axis_type="datetime",
+    sizing_mode="stretch_width",
+    height=100,
+)
 
-fig.update_layout(xaxis_title='Time', yaxis_title='Quantity')
-st.plotly_chart(fig, use_container_width=True)
+fig_stacked_max = float(stacked_df["volume"].max())
+pad = fig_stacked_max * 0.1
+fig_stacked.y_range = Range1d(
+    start=0,
+    end=fig_stacked_max + pad,
+    bounds=(0, fig_stacked_max + pad)
+)
+
+fig_stacked.vbar_stack(
+    stackers=["BUY", "SELL"],
+    x='time',
+    width=50000,  # một phút
+    color=["green", "red"],
+    source=stacked_df.pivot(index='time', columns='side', values='volume').reset_index(),
+    legend_label=["BUY", "SELL"],
+)
+
+fig_stacked.xaxis.axis_label = 'Time'
+fig_stacked.yaxis.axis_label = 'Quantity'
+fig_stacked.legend.location = "top_left"
+fig_stacked.legend.click_policy = "hide"
+fig_stacked.add_tools(HoverTool(
+    tooltips=[
+        ("time", "@time{%F %T}"),
+        ("BUY Volume", "@BUY{0,0}"),
+        ("SELL Volume", "@SELL{0,0}"),
+    ],
+    formatters={"@time": "datetime"},
+    mode="mouse"
+))
+
+streamlit_bokeh(fig_stacked, use_container_width=True)
 
 # Grouped Bar Chart
-bucket = "1min"  # "5min", "15min", "1H"...
-stacked_df = (df
+grouped_df = (df
               .set_index("time")
               .groupby("side")["qty"]
               .resample(bucket)
@@ -115,8 +153,54 @@ stacked_df = (df
               .reset_index(name="count")
               )
 
-fig = px.bar(stacked_df, x='time', y='count', color='side', barmode='group',
-             title='Số lượng theo Side',)
+# Pivot để có BUY và SELL thành các cột riêng
+pivot_grouped = grouped_df.pivot(index='time', columns='side', values='count').reset_index()
 
-fig.update_layout(xaxis_title='Time', yaxis_title='Quantity')
-st.plotly_chart(fig, use_container_width=True)
+source_grouped = ColumnDataSource(pivot_grouped)
+
+fig_grouped = figure(
+    title="Số lượng theo Side",
+    x_axis_type="datetime",
+    sizing_mode="stretch_width",
+    height=100,
+)
+
+fig_grouped_max = float(grouped_df["count"].max())
+pad = fig_grouped_max * 0.1
+fig_grouped.y_range = Range1d(
+    start=0,
+    end=fig_grouped_max + pad,
+    bounds=(0, fig_grouped_max + pad)
+)
+
+# Sử dụng dodge để tạo grouped bars
+bar_width = 25000  # nửa phút
+buy_bar = fig_grouped.vbar(x=dodge('time', - bar_width / 2, range=fig_grouped.x_range), top='BUY',
+                           width=bar_width, source=source_grouped, color="green", legend_label="BUY")
+sell_bar = fig_grouped.vbar(x=dodge('time', bar_width / 2, range=fig_grouped.x_range), top='SELL',
+                            width=bar_width, source=source_grouped, color="red", legend_label="SELL")
+
+fig_grouped.xaxis.axis_label = 'Time'
+fig_grouped.yaxis.axis_label = 'Count'
+fig_grouped.legend.location = "top_left"
+fig_grouped.legend.click_policy = "hide"
+fig_grouped.add_tools(HoverTool(
+    renderers=[buy_bar],
+    tooltips=[
+        ("time", "@time{%F %T}"),
+        ("BUY Count", "@BUY{0,0}"),
+    ],
+    formatters={"@time": "datetime"},
+    mode="vline"
+))
+fig_grouped.add_tools(HoverTool(
+    renderers=[sell_bar],
+    tooltips=[
+        ("time", "@time{%F %T}"),
+        ("SELL Count", "@SELL{0,0}"),
+    ],
+    formatters={"@time": "datetime"},
+    mode="mouse"
+))
+
+streamlit_bokeh(fig_grouped, use_container_width=True)
