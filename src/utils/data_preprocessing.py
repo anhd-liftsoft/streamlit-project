@@ -3,7 +3,7 @@ import pandas as pd
 
 class DataPreprocessor:
     @staticmethod
-    def convert_to_datetime(df: pd.DataFrame, column: str, unit: str = 'us') -> pd.DataFrame:
+    def convert_to_datetime(df: pd.DataFrame, column: str, unit: str = None) -> pd.DataFrame:
         """
         Convert a timestamp column to datetime.
         Args:
@@ -13,5 +13,8 @@ class DataPreprocessor:
         Returns:
             pd.DataFrame: DataFrame with the timestamp column converted to datetime.
         """
-        df[column] = pd.to_datetime(df[column], unit=unit)
+        if unit:
+            df[column] = pd.to_datetime(df[column], unit=unit)
+        else:
+            df[column] = pd.to_datetime(df[column])
         return df

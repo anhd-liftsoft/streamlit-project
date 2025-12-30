@@ -12,7 +12,7 @@ TITLE = "Hiển thị dữ liệu trade và biểu đồ box plot (Box Plot)"
 
 # Tạo dữ liệu mẫu
 df: pd.DataFrame = DataLoader.load_csv("btc_trade_data.csv")
-df = DataPreprocessor.convert_to_datetime(df, 'time', unit='us')
+df = DataPreprocessor.convert_to_datetime(df, 'time')
 
 # =============== Filters ================
 

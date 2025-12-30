@@ -13,8 +13,8 @@ TITLE = "Hiển thị dữ liệu klines và biểu đồ nến (Candlestick)"
 
 # Tạo dữ liệu mẫu
 df = DataLoader.load_csv("eth_data.csv")
-df = DataPreprocessor.convert_to_datetime(df, 'open_time', unit='us')
-df = DataPreprocessor.convert_to_datetime(df, 'close_time', unit='us')
+df = DataPreprocessor.convert_to_datetime(df, 'open_time')
+df = DataPreprocessor.convert_to_datetime(df, 'close_time')
 
 # =============== Filters ================
 
