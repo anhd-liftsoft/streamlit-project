@@ -1,0 +1,11 @@
+venv/
+.env
+__pycache__/
+*.pyc
+.DS_Store
+/.streamlit/
+/.vscode/
+*.sqlite3
+.env*
+# Data (uncomment if you want to keep CSVs out of git)
+# data/*.csv
